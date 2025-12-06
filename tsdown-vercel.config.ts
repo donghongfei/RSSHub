@@ -1,4 +1,5 @@
 import { defineConfig } from 'tsdown';
+
 import artTemplatesPlugin from './plugins/rollup-plugin-art-templates.ts';
 
 export default defineConfig({
@@ -7,5 +8,5 @@ export default defineConfig({
     shims: true,
     clean: true,
     plugins: [artTemplatesPlugin()],
-    copy: ['lib/assets'],
+    // copy: [{ from: 'lib/assets', to: 'dist' }],
 });
