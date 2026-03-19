@@ -1,0 +1,32 @@
+name: Sync upstream weekly
+
+on:
+  schedule:
+    # Every Sunday 03:17 Asia/Shanghai (Saturday 19:17 UTC)
+    - cron: '17 19 * * 6'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync from upstream
+        run: |
+          git remote add upstream https://github.com/DIYgod/RSSHub.git
+          git fetch upstream master
+          git checkout master
+          git merge --ff-only upstream/master
+          git push origin master
