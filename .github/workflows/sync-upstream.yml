@@ -1,0 +1,53 @@
+name: Sync upstream weekly
+
+on:
+  schedule:
+    # Every Sunday 03:17 Asia/Shanghai (Saturday 19:17 UTC)
+    - cron: '17 19 * * 6'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      UPSTREAM_REPO: DIYgod/RSSHub
+      BRANCH: master
+    steps:
+      - name: Check token
+        env:
+          SYNC_UPSTREAM_TOKEN: ${{ secrets.SYNC_UPSTREAM_TOKEN }}
+        run: |
+          if [ -z "${SYNC_UPSTREAM_TOKEN}" ]; then
+            echo "Missing SYNC_UPSTREAM_TOKEN secret. Create a PAT with Contents: read/write and Workflows: read/write permissions."
+            exit 1
+          fi
+
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_UPSTREAM_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync from upstream
+        run: |
+          git remote add upstream "https://github.com/${UPSTREAM_REPO}.git" || true
+          git fetch upstream "${BRANCH}"
+          cp .github/workflows/sync-upstream.yml /tmp/sync-upstream.yml
+          git reset --hard "upstream/${BRANCH}"
+          mkdir -p .github/workflows
+          cp /tmp/sync-upstream.yml .github/workflows/sync-upstream.yml
+          git add .github/workflows/sync-upstream.yml
+          git diff --cached --quiet || git commit -m "chore: preserve sync workflow"
+          git push --force origin "HEAD:${BRANCH}"
